@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
 app.get("/movies", (req, res) => {
   //get data from database
   db.executeQuery(
-    `SELECT * FROM Game
+    `SELECT * FROM Games
   LEFT JOIN Genre
   ON Genre.GenreID = Game.GenreID`
   )
@@ -31,6 +31,29 @@ app.get("/movies", (req, res) => {
     })
     .catch((myError) => {
       console.log(myError);
+      res.status(500).send();
+    });
+});
+
+app.get("/game/:pk", (req, res) => {
+  let pk = req.params.pk;
+  // console.log(pk);
+  let myQuery = `SELECT * FROM Game
+  LEFT JOIN Genre
+  ON Genre.GenreID = Game.GenreID
+  WHERE GameID = ${pk}`;
+
+  db.executeQuery(myQuery)
+    .then((result) => {
+      // console.log("result", result);
+      if (result[0]) {
+        res.send(result[0]);
+      } else {
+        res.status(404).send(`bad request`);
+      }
+    })
+    .catch((err) => {
+      console.log("error in /game/:pk", err);
       res.status(500).send();
     });
 });
