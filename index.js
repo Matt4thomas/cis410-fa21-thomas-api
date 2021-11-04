@@ -1,5 +1,7 @@
 const express = require("express");
 
+const db = require("./dbConnectExec.js");
+
 const app = express();
 
 app.listen(5000, () => {
@@ -16,3 +18,19 @@ app.get("/", (req, res) => {
 
 // app.post()
 // app.put()
+
+app.get("/movies", (req, res) => {
+  //get data from database
+  db.executeQuery(
+    `SELECT * FROM Game
+  LEFT JOIN Genre
+  ON Genre.GenreID = Game.GenreID`
+  )
+    .then((theResults) => {
+      res.status(200).send(theResults);
+    })
+    .catch((myError) => {
+      console.log(myError);
+      res.status(500).send();
+    });
+});
