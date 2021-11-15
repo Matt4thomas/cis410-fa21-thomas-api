@@ -1,7 +1,9 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const db = require("./dbConnectExec.js");
+const m4thomasConfig = require("./config.js");
 
 const app = express();
 app.use(express.json());
@@ -21,8 +23,78 @@ app.get("/", (req, res) => {
 // app.post()
 // app.put()
 
-app.post("/consumer", async (req, res) => {
-  // res.send("/consumer called");
+app.post("/contacts/login", async (req, res) => {
+  // console.log("/contacts/login called", req.body);
+
+  //1. data validation
+  let email = req.body.emal;
+  let password = req.body.password;
+
+  if (!email || !password) {
+    return res.status(400).send("Bad request");
+  }
+
+  //2. check that user exists in DB
+
+  let query = `SELECT *
+  FROM Consumer
+  WHERE Email = '${email}'`;
+
+  let result;
+  try {
+    result = await db.executeQuery(query);
+  } catch (myError) {
+    console.log("error in /contacts/login", myError);
+    return res.status(500).send();
+  }
+
+  // console.log("result", result);
+
+  if (!result[0]) {
+    return res.status(401).send("Invalid user credentials");
+  }
+  //3. check password
+
+  let user = result[0];
+
+  if (!bcrypt.compareSync(password, user.password)) {
+    console.log("invalid password");
+    return res.status(401).send("Invaild user credentials");
+  }
+
+  //4. generate token
+
+  let token = jwt.sign({ pk: user.ConsumerID }, m4thomasConfig.JWT, {
+    expiresIn: "60 minutes",
+  });
+  console.log("token", token);
+
+  //5. save token in DB and send response
+
+  let setTokenQuery = `UPDATE Consumer
+  SET token = '${token}'
+  WHERE ConsumerID = ${user.ConsumerID}`;
+
+  try {
+    await db.executeQuery(setTokenQuery);
+
+    res.status(200).send({
+      tokn: token,
+      user: {
+        nameFirst: user.nameFirst,
+        nameLast: user.nameLast,
+        email: user.email,
+        ConsumerID: user.ConsumerID,
+      },
+    });
+  } catch (myError) {
+    console.log("error in setting user token", myError);
+    res.status(500).send();
+  }
+});
+
+app.post("/contacts", async (req, res) => {
+  // res.send("/contacts called");
 
   // console.log("request body", req.body);
 
@@ -59,7 +131,7 @@ VALUES('${nameFirst}', '${nameLast}', '${email}', '${hashedPassword}')`;
       res.status(201).send();
     })
     .catch((err) => {
-      console.log("error in POST /consumer", err);
+      console.log("error in POST /contacts", err);
       res.status(500).send();
     });
 });
