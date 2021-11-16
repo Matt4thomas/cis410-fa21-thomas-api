@@ -1,0 +1,4 @@
+{
+  "appService.defaultWebAppToDeploy": "/subscriptions/ec5747dc-3a68-4885-86a2-17204fb7b625/resourceGroups/appsvc_linux_centralus/providers/Microsoft.Web/sites/CIS410-fa21-m4thomas-api",
+  "appService.deploySubpath": "."
+}
