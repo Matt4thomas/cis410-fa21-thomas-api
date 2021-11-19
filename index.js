@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const db = require("./dbConnectExec.js");
-const m4thomasConfig = require("./config");
+const m4thomasConfig = require("./config.js");
 const auth = require("./middleware/authenticate");
 
 const app = express();
@@ -30,31 +30,46 @@ app.get("/", (req, res) => {
 // app.post()
 // app.put()
 
-app.post("/reviews", auth, async (req, res) => {
+app.post("/consumer/logout", auth, (req, res) => {
+  let query = `UPDATE Consumer
+SET Token = NULL 
+WHERE ConsumerID = ${req.consumer.ConsumerID}`;
+
+  db.executeQuery(query)
+    .then(() => {
+      res.status(200).send();
+    })
+    .catch((err) => {
+      console.log("error in POST /consumer/logout", err);
+      res.status(500).send();
+    });
+});
+
+app.post("/review", auth, async (req, res) => {
   try {
-    let movieFK = req.body.movieFK;
-    let summary = req.body.summary;
+    let GameID = req.body.GameID;
+    let Recommendation = req.body.Recommendation;
     let rating = req.body.rating;
 
-    if (!movieFK || !summary || !rating || !Number.isInteger(rating)) {
+    if (!GameID || !Recommendation || !rating || !Number.isInteger(rating)) {
       return res.status(400).send("bad request");
     }
 
-    summary = summary.replace("'", "''");
+    Recommendation = Recommendation.replace("'", "''");
 
     // console.log("summary", summary);
     // console.log("here is the contact", req.contact);
 
     let insertQuery = `INSERT INTO Review(Recommendation, Rating, GameID, ConsumerID)
     OUTPUT inserted.ReviewID, inserted.Recommendation, inserted.Rating, inserted.GameID
-    VALUES('${summary}', '${rating}', '${movieFK}', ${req.contact.ConsumerID})`;
+    VALUES('${Recommendation}', '${rating}', '${GameID}', ${req.contact.ConsumerID})`;
 
     let insertedReview = await db.executeQuery(insertQuery);
     console.log("inserted review", insertedReview);
     // res.send("here is the response");
     res.status(201).send(insertedReview[0]);
   } catch (err) {
-    console.log("error in POST /reviews", err);
+    console.log("error in POST /review", err);
     res.status(500).send();
   }
 });
@@ -163,7 +178,7 @@ app.post("/contacts", async (req, res) => {
   }
   let hashedPassword = bcrypt.hashSync(password);
 
-  let insertQuery = `INSERT INTO Consumer(NameFirst, NameLast, Email, PhoneNum)
+  let insertQuery = `INSERT INTO Consumer(NameFirst, NameLast, Email, Token)
 VALUES('${nameFirst}', '${nameLast}', '${email}', '${hashedPassword}')`;
 
   db.executeQuery(insertQuery)
@@ -171,7 +186,7 @@ VALUES('${nameFirst}', '${nameLast}', '${email}', '${hashedPassword}')`;
       res.status(201).send();
     })
     .catch((err) => {
-      console.log("error in POST /contacts", err);
+      console.log("error in POST /consumer", err);
       res.status(500).send();
     });
 });
